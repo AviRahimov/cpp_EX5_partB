@@ -41,8 +41,8 @@ namespace ariel
          */
         void addElement(int element)
         {
-            auto it = std::lower_bound(mystical_elements.begin(), mystical_elements.end(), element);
-            mystical_elements.insert(it, element);
+            auto iter = std::lower_bound(mystical_elements.begin(), mystical_elements.end(), element);
+            mystical_elements.insert(iter, element);
         }
 
         /**
@@ -51,15 +51,16 @@ namespace ariel
          *
          * If the element exists in the container, it will be removed. If there are multiple
          * occurrences of the element, only the first occurrence will be removed.
+         * @throws std::runtime_error If the element is not found in the container.
          */
         void removeElement(int element)
         {
             // Find the element in the vector and remove it
-            auto it = std::find(mystical_elements.begin(), mystical_elements.end(), element);
+            auto iter = std::find(mystical_elements.begin(), mystical_elements.end(), element);
 
-            if (it != mystical_elements.end())
+            if (iter != mystical_elements.end())
             {
-                mystical_elements.erase(it);
+                mystical_elements.erase(iter);
             }
             else
             {
@@ -103,14 +104,15 @@ namespace ariel
             AscendingIterator(const AscendingIterator &other) : magic_ctr(other.magic_ctr), index(other.index) {}
 
             /**
-             * @brief Destructor for AscendingIterator.
+             * @brief Default Destructor for AscendingIterator.
              */
-            ~AscendingIterator() {}
+            ~AscendingIterator() = default;
 
             /**
              * @brief Assignment operator for AscendingIterator.
              * @param other The AscendingIterator to assign from.
              * @return Reference to the assigned AscendingIterator.
+             * @throws std::runtime_error If the iterators are pointing at different containers.
              */
             AscendingIterator &operator=(const AscendingIterator &other)
             {
@@ -118,6 +120,7 @@ namespace ariel
                 {
                     throw std::runtime_error("Iterators are pointing at different containers");
                 }
+
                 if (this != &other)
                 {
                     magic_ctr = other.magic_ctr;
@@ -151,7 +154,7 @@ namespace ariel
              * @param other The AscendingIterator to compare with.
              * @return True if this iterator is greater than the other iterator, false otherwise.
              */
-            bool operator>(const AscendingIterator &other)
+            bool operator>(const AscendingIterator &other) const
             {
                 return index > other.index;
             }
@@ -161,7 +164,7 @@ namespace ariel
              * @param other The AscendingIterator to compare with.
              * @return True if this iterator is less than the other iterator, false otherwise.
              */
-            bool operator<(const AscendingIterator &other)
+            bool operator<(const AscendingIterator &other) const
             {
                 return !(*this > other) && (other != other);
             }
@@ -178,6 +181,7 @@ namespace ariel
             /**
              * @brief Pre-increment operator.
              * @return Reference to the incremented iterator.
+             * @throws std::runtime_error If the index is invalid.
              */
             AscendingIterator &operator++()
             {
@@ -230,7 +234,13 @@ namespace ariel
              * @brief Constructs a SideCrossIterator object.
              * @param magic_ctr The MagicalContainer to iterate over.
              */
-            SideCrossIterator(MagicalContainer &magic_ctr) : magic_ctr(&magic_ctr), head_index(0), tail_index(magic_ctr.size() - 1), is_head(true) {}
+            SideCrossIterator(MagicalContainer &magic_ctr) : magic_ctr(&magic_ctr), head_index(0), tail_index(magic_ctr.size() - 1), is_head(true)
+            {
+                if (magic_ctr.size() == 0)
+                {
+                    tail_index = 0;
+                }
+            }
 
             /**
              * @brief Copy constructor for SideCrossIterator.
@@ -239,14 +249,15 @@ namespace ariel
             SideCrossIterator(const SideCrossIterator &other) : magic_ctr(other.magic_ctr), head_index(other.head_index), tail_index(other.tail_index), is_head(other.is_head) {}
 
             /**
-             * @brief Destructor for SideCrossIterator.
+             * @brief Default Destructor for SideCrossIterator.
              */
-            ~SideCrossIterator() {}
+            ~SideCrossIterator() = default;
 
             /**
              * @brief Assignment operator for SideCrossIterator.
              * @param other The SideCrossIterator to assign from.
              * @return Reference to the assigned SideCrossIterator.
+             * @throws std::runtime_error If the iterators are pointing at different containers.
              */
             SideCrossIterator &operator=(const SideCrossIterator &other)
             {
@@ -271,7 +282,7 @@ namespace ariel
              */
             bool operator==(const SideCrossIterator &other) const
             {
-                return head_index == other.head_index && tail_index == other.tail_index;
+                return (head_index == other.head_index) && (tail_index == other.tail_index);
             }
 
             /**
@@ -289,9 +300,9 @@ namespace ariel
              * @param other The SideCrossIterator to compare with.
              * @return True if this iterator is greater than the other iterator, false otherwise.
              */
-            bool operator>(const SideCrossIterator &other)
+            bool operator>(const SideCrossIterator &other) const
             {
-                return (tail_index - head_index) < (other.tail_index - other.head_index);
+                return tail_index > other.tail_index || head_index > other.head_index;
             }
 
             /**
@@ -299,7 +310,7 @@ namespace ariel
              * @param other The SideCrossIterator to compare with.
              * @return True if this iterator is less than the other iterator, false otherwise.
              */
-            bool operator<(const SideCrossIterator &other)
+            bool operator<(const SideCrossIterator &other) const
             {
                 return !(*this > other) && (other != other);
             }
@@ -314,24 +325,21 @@ namespace ariel
                 {
                     return magic_ctr->mystical_elements[head_index];
                 }
-                else
-                {
-                    return magic_ctr->mystical_elements[tail_index];
-                }
+                return magic_ctr->mystical_elements[tail_index];
             }
 
             /**
              * @brief Pre-increment operator.
              * @return Reference to the incremented iterator.
+             * @throws std::runtime_error If the iterator has reached the end.
              */
             SideCrossIterator &operator++()
             {
-                // std::cout << "head = " << head_index << std::endl;
-                // std::cout << "tail = " << tail_index << std::endl;
                 if (*this == end())
                 {
-                    throw std::runtime_error("Cannot increment while pointing at the end of the vector");
+                    throw std::runtime_error("Reached to the end");
                 }
+
                 if (is_head)
                 {
                     head_index++;
@@ -339,6 +347,12 @@ namespace ariel
                 else
                 {
                     tail_index--;
+                }
+
+                if (tail_index < head_index)
+                {
+                    tail_index = magic_ctr->size();
+                    head_index = 0;
                 }
                 is_head = !is_head;
                 return *this;
@@ -360,16 +374,9 @@ namespace ariel
             SideCrossIterator end()
             {
                 SideCrossIterator iter(*magic_ctr);
-                if (magic_ctr->size() % 2 == 0)
-                {
-                    head_index = magic_ctr->size() / 2 - 1;
-                }
-                else
-                {
-                    head_index = magic_ctr->size() / 2;
-                }
-                
-                tail_index = head_index + 1;
+                iter.head_index = 0;
+                iter.tail_index = magic_ctr->size();
+                iter.is_head = true;
                 return iter;
             }
         };
@@ -410,17 +417,23 @@ namespace ariel
             PrimeIterator(const PrimeIterator &other) : magic_ctr(other.magic_ctr), index(other.index) {}
 
             /**
-             * @brief Destructor for PrimeIterator.
+             * @brief Default Destructor for PrimeIterator.
              */
-            ~PrimeIterator() {}
+            ~PrimeIterator() = default;
 
             /**
              * @brief Assignment operator for PrimeIterator.
              * @param other The PrimeIterator to assign from.
              * @return Reference to the assigned PrimeIterator.
+             * @throws std::runtime_error If the iterators are pointing at different containers.
              */
             PrimeIterator &operator=(const PrimeIterator &other)
             {
+                if (this->magic_ctr != other.magic_ctr)
+                {
+                    throw std::runtime_error("Iterators are pointing at different containers");
+                }
+
                 if (this != &other)
                 {
                     magic_ctr = other.magic_ctr;
@@ -454,7 +467,7 @@ namespace ariel
              * @param other The PrimeIterator to compare with.
              * @return True if this iterator is greater than the other iterator, false otherwise.
              */
-            bool operator>(const PrimeIterator &other)
+            bool operator>(const PrimeIterator &other) const
             {
                 return index > other.index;
             }
@@ -464,7 +477,7 @@ namespace ariel
              * @param other The PrimeIterator to compare with.
              * @return True if this iterator is less than the other iterator, false otherwise.
              */
-            bool operator<(const PrimeIterator &other)
+            bool operator<(const PrimeIterator &other) const
             {
                 return !(*this > other) && (other != other);
             }
@@ -481,6 +494,7 @@ namespace ariel
             /**
              * @brief Pre-increment operator.
              * @return Reference to the incremented iterator.
+             * @throws std::runtime_error If the iterator has reached the end.
              */
             PrimeIterator &operator++()
             {
@@ -515,8 +529,12 @@ namespace ariel
                 iter.index = magic_ctr->mystical_elements.size();
                 return iter;
             }
-
-            bool isPrime(int value)
+            /**
+             * @brief Checks if a given value is prime.
+             * @param value The value to check for primality.
+             * @return True if the value is prime, false otherwise.
+             */
+            bool static isPrime(int value)
             {
                 if (value <= 1)
                 {
